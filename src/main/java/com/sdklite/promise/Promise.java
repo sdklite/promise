@@ -24,26 +24,101 @@ import java.util.concurrent.atomic.AtomicReference;
 public class Promise<V> implements Thenable<V> {
 
     /**
-     * Returns a single Promise that resolves when all of the promises in the
-     * iterable argument have resolved or when the iterable argument contains no
-     * promises. It rejects with the reason of the first promise that rejects.
+     * Returns a single {@link Promise} that resolves when all of the promises
+     * in the array argument have resolved or when the array argument contains
+     * no promises. It rejects with the reason of the first promise that
+     * rejects.
      * 
+     * @param iterable
+     *            An array.
+     * @return
+     *         <ul>
+     *         <li>An already resolved {@link Promise} if the iterable passed is
+     *         empty.</li>
+     *         <li>An asynchronously resolved {@link Promise} if the iterable
+     *         passed contains no promises.</li>
+     *         <li>A pending {@link Promise} in all other cases. This returned
+     *         promise is then resolved/rejected asynchronously (as soon as the
+     *         stack is empty) when all the promises in the given iterable have
+     *         resolved, or if any of the promises reject.</li>
+     *         </ul>
+     */
+    public static Promise<Object[]> all(final Object... iterable) {
+        return all(Arrays.asList(iterable));
+    }
+
+    /**
+     * Returns a single {@link Promise} that resolves when all of the promises
+     * in the array argument have resolved or when the array argument contains
+     * no promises. It rejects with the reason of the first promise that
+     * rejects.
+     * 
+     * @param type
+     *            The the value component type of returned {@link Promise}.
+     * @param iterable
+     *            An array.
+     * @return
+     *         <ul>
+     *         <li>An already resolved {@link Promise} if the iterable passed is
+     *         empty.</li>
+     *         <li>An asynchronously resolved {@link Promise} if the iterable
+     *         passed contains no promises.</li>
+     *         <li>A pending {@link Promise} in all other cases. This returned
+     *         promise is then resolved/rejected asynchronously (as soon as the
+     *         stack is empty) when all the promises in the given iterable have
+     *         resolved, or if any of the promises reject.</li>
+     *         </ul>
+     */
+    public static <T> Promise<T[]> all(final Class<T> type, final Object... iterable) {
+        return all(type, Arrays.asList(iterable));
+    }
+
+    /**
+     * Returns a single {@link Promise} that resolves when all of the promises
+     * in the iterable argument have resolved or when the iterable argument
+     * contains no promises. It rejects with the reason of the first promise
+     * that rejects.
+     * 
+     * @param iterable
+     *            An iterable object such as a Collection.
+     * @return
+     *         <ul>
+     *         <li>An already resolved {@link Promise} if the iterable passed is
+     *         empty.</li>
+     *         <li>An asynchronously resolved {@link Promise} if the iterable
+     *         passed contains no promises.</li>
+     *         <li>A pending {@link Promise} in all other cases. This returned
+     *         promise is then resolved/rejected asynchronously (as soon as the
+     *         stack is empty) when all the promises in the given iterable have
+     *         resolved, or if any of the promises reject.</li>
+     *         </ul>
+     */
+    public static Promise<Object[]> all(final Iterable<?> iterable) {
+        return all(Object.class, iterable);
+    }
+
+    /**
+     * Returns a single {@link Promise} that resolves when all of the promises
+     * in the iterable argument have resolved or when the iterable argument
+     * contains no promises. It rejects with the reason of the first promise
+     * that rejects.
+     * 
+     * @param type
+     *            The the value component type of returned {@link Promise}.
      * @param args
      *            An iterable object such as an Array or Collection.
      * @return
+     *         <ul>
+     *         <li>An already resolved {@link Promise} if the iterable passed is
+     *         empty.</li>
+     *         <li>An asynchronously resolved {@link Promise} if the iterable
+     *         passed contains no promises.</li>
+     *         <li>A pending {@link Promise} in all other cases. This returned
+     *         promise is then resolved/rejected asynchronously (as soon as the
+     *         stack is empty) when all the promises in the given iterable have
+     *         resolved, or if any of the promises reject.</li>
+     *         </ul>
      */
-    public static Promise<Object[]> all(final Object... args) {
-        return all(Arrays.asList(args));
-    }
-
-    public static <T> Promise<T[]> all(final Class<T> type, final Object... args) {
-        return all(type, Arrays.asList(args));
-    }
-
-    public static Promise<Object[]> all(final Iterable<?> args) {
-        return all(Object.class, args);
-    }
-
     public static <T> Promise<T[]> all(final Class<T> type, final Iterable<?> args) {
         if (null == args) {
             return Promise.resolve();
@@ -65,10 +140,14 @@ public class Promise<V> implements Thenable<V> {
             final int idx = index.getAndIncrement();
 
             next.then(v -> {
-                results[idx] = v;
+                try {
+                    results[idx] = v;
 
-                if (0 == counter.decrementAndGet()) {
-                    promise._resolve(results);
+                    if (0 == counter.decrementAndGet()) {
+                        promise._resolve(results);
+                    }
+                } catch (final Throwable t) {
+                    promise._reject(t);
                 }
             }, e -> promise._reject(e));
         });
@@ -77,20 +156,20 @@ public class Promise<V> implements Thenable<V> {
     }
 
     /**
-     * Resolve {@code null} value
+     * Returns a {@link Promise} object that is resolved with {@code null} value
      * 
-     * @return a {@link Promise} instance
+     * @return a {@link Promise} that is resolved with {@code null} value
      */
     public static <T> Promise<T> resolve() {
         return new Promise<T>((resolve, reject) -> resolve.accept((T) null));
     }
 
     /**
-     * Resolve the specified value
+     * Returns a {@link Promise} object that is resolved with the specific value
      * 
      * @param value
-     *            The value to resolve
-     * @return a {@link Promise} instance
+     *            The to be resolved
+     * @return a {@link Promise} that is resolved with the specific value
      */
     public static <T> Promise<T> resolve(final T value) {
         return new Promise<T>((resolve, reject) -> resolve.accept(value));
@@ -104,13 +183,24 @@ public class Promise<V> implements Thenable<V> {
      * @return a {@link Promise} instance
      */
     public static <T> Promise<T> resolve(final Thenable<T> thenable) {
+        if (thenable instanceof Promise) {
+            return (Promise<T>) thenable;
+        }
+
         final Promise<T> p = new Promise<T>();
         p._resolve(thenable);
         return p;
     }
 
-    public static <T> Promise<T> reject(final Throwable t) {
-        return new Promise<T>((resolve, reject) -> reject.accept(t));
+    /**
+     * Returns a Promise object that is rejected with the given reason.
+     * 
+     * @param reason
+     *            The reason why this Promise rejected.
+     * @return A Promise that is rejected with the given reason.
+     */
+    public static <T> Promise<T> reject(final Throwable reason) {
+        return new Promise<T>((resolve, reject) -> reject.accept(reason));
     }
 
     private final Queue<Subscriber<V, ?>> subscribers = new ConcurrentLinkedQueue<Subscriber<V, ?>>();

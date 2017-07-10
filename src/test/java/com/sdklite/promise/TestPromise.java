@@ -3,14 +3,10 @@ package com.sdklite.promise;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import java.io.InputStreamReader;
-import java.net.URL;
 import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
 
 import org.junit.Test;
-
-import com.google.gson.Gson;
 
 public class TestPromise {
 
@@ -116,7 +112,10 @@ public class TestPromise {
         Promise.all(Object.class, "a", "b", "c", Promise.resolve("d"), 1).then(v -> {
             System.out.println(Arrays.toString(v));
             signal.countDown();
-        }, e -> e.printStackTrace());
+        }, e -> {
+            e.printStackTrace();
+            signal.countDown();
+        });
 
         await(signal);
     }

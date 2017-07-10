@@ -23,6 +23,15 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class Promise<V> implements Thenable<V> {
 
+    /**
+     * Returns a single Promise that resolves when all of the promises in the
+     * iterable argument have resolved or when the iterable argument contains no
+     * promises. It rejects with the reason of the first promise that rejects.
+     * 
+     * @param args
+     *            An iterable object such as an Array or Collection.
+     * @return
+     */
     public static Promise<Object[]> all(final Object... args) {
         return all(Arrays.asList(args));
     }
@@ -110,9 +119,18 @@ public class Promise<V> implements Thenable<V> {
     private volatile Throwable reason;
     private volatile AtomicReference<State> state = new AtomicReference<State>(State.PENDING);
 
+    /**
+     * Default constructor
+     */
     public Promise() {
     }
 
+    /**
+     * Create an instance with an executor function
+     * 
+     * @param executor
+     *            The executor function
+     */
     public Promise(final Executor<Consumer<V>, Consumer<Throwable>> executor) {
         try {
             executor.accept(v -> setTimeout(() -> _resolve(v)), e -> setTimeout(() -> _reject(e)));

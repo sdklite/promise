@@ -1,7 +1,7 @@
 package com.sdklite.promise;
 
 /**
- * Represents the executor function
+ * Represents a function that is passed with the arguments resolve and reject.
  * 
  * @author johnsonlee
  *

@@ -180,7 +180,7 @@ public class Promise<V> implements Thenable<V> {
      * 
      * @param thenable
      *            The thenable to resolve
-     * @return a {@link Promise} instance
+     * @return a {@link Promise} will "follow" the thenable, adopting its eventual state.
      */
     public static <T> Promise<T> resolve(final Thenable<T> thenable) {
         if (thenable instanceof Promise) {
@@ -197,7 +197,7 @@ public class Promise<V> implements Thenable<V> {
      * 
      * @param reason
      *            The reason why this Promise rejected.
-     * @return A Promise that is rejected with the given reason.
+     * @return a {@link Promise} that is rejected with the given reason.
      */
     public static <T> Promise<T> reject(final Throwable reason) {
         return new Promise<T>((resolve, reject) -> reject.accept(reason));
